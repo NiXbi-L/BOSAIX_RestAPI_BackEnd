@@ -16,7 +16,6 @@ Configuration.secret_key = cfg.PaymentAPI_key
 
 def check_pay(payment_id):
     payment = json.loads((Payment.find_one(payment_id)).json())
-    print(payment['status'])
     if payment['status'] == 'pending':
         return False
     elif payment['status'] =='succeeded':
