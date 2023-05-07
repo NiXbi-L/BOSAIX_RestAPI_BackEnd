@@ -4,10 +4,15 @@ import requests
 
 import pandas as pd
 
+import random
+
+import cfg
+
 #Чтение таблиц Exel
 ##################################################################################
 userdata = pd.read_excel('DataBase/Sheets/UserData.xlsx',usecols=[1,2,3,4,5]).to_dict('list')
 userdataBuisnes = pd.read_excel('DataBase/Sheets/UserDataBuisnes.xlsx',usecols=[1,2,3,4]).to_dict('list')
+Tokens = pd.read_excel('DataBase/Sheets/Tokens.xlsx',usecols=[1,2]).to_dict('list')
 ##################################################################################
 
 #Создание объектов RestFull_API
@@ -18,77 +23,130 @@ api = Api()
 
 #Иные функции
 ##################################################################################
-def DBadd(dictt,namesarr,inputarr): #Добавление данных в бд (словарь,список имен,список данных)
-    assert len(namesarr) == len(inputarr) #Если оба списки равны
-    for i in range(len(namesarr)):
-        dictt[namesarr[i]].append(inputarr[i])
+def DBadd(dictt,inputarr): #Добавление данных в бд (словарь,список имен,список данных)
+    assert len(list(dictt)) == len(inputarr)
+    j = 0
+    for i in list(dictt):
+        dictt[i].append(inputarr[j])
+        j+=1
     return dictt #Возвращаем копию словаря уже с внесенными данными
+def getToken():
+    chars = 'abcdefghijklnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
+    for n in range(1):
+        password = ''
+        for i in range(64):
+            password += random.choice(chars)
+    return password
 ##################################################################################
 
 #Классы обработчики
 ##################################################################################
 class addDataFrame(Resource): #Запрос на добавление в базу данных /<Логин>/<Пароль>/<Эл. почта>/<Тип аккаунта gamer || buisnes>
-    def put(self,login,password,email,acounttype): #Обработка PUT запросов
-        global userdata,userdataBuisnes #Обозначаем работу с глобальными переменными
-        if acounttype == 'gamer': #Если передаваемый тип аккаунта 'gemer'
-            if login in userdata['UserName']: #Проверка наличия пользователя в БД
-                return {'status': 'UserInDataBase'} #Возврат статуса операции
-            else:
-                userdata = DBadd(userdata,[
-                    'UserName',
-                    'UserPass',
-                    'email',
-                    'Balance',
-                    'GameTime'
-                ],[
-                    login,
-                    password,
-                    email,
-                    0.0,
-                    "00:00:00"
-                ]) #Добавление данных в БД
-                pd.DataFrame(userdata).to_excel('DataBase/Sheets/UserData.xlsx') #Сохранение в постоянную память
-                return {'status': 'UserAdded'} #Возврат статуса операции
-        elif acounttype == 'buisnes': #Если передаваемый тип аккаунта 'buisnes'
-            if login in userdataBuisnes['UserName']: #Проверка наличия пользователя в БД
-                return {'status': 'UserInDataBase'} #Возврат статуса операции
-            else:
-                userdataBuisnes = DBadd(userdataBuisnes,
-                                        [
-                                        'UserName',
-                                        'UserPass',
-                                        'email',
-                                        'Balance',
-                                        ],[
-                                        login,
-                                        password,
-                                        email,
-                                        0.0,
-                                        ]) #Добавление данных в БД
-                pd.DataFrame(userdataBuisnes).to_excel('DataBase/Sheets/UserDataBuisnes.xlsx') #Сохранение в постоянную память
-                return {'status': 'UserAdded'} #Возврат статуса операции
+    def put(self,Token,login,password,email,acounttype): #Обработка PUT запросов
+        if Token == cfg.DataFrameAPI_Token:
+            global userdata,userdataBuisnes #Обозначаем работу с глобальными переменными
+            if acounttype == 'gamer': #Если передаваемый тип аккаунта 'gemer'
+                if login in userdata['UserName']: #Проверка наличия пользователя в БД
+                    return {'status': 'UserInDataBase'} #Возврат статуса операции
+                else:
+                    userdata = DBadd(userdata,[
+                        login,
+                        password,
+                        email,
+                        0.0,
+                        "00:00:00"
+                    ]) #Добавление данных в БД
+                    pd.DataFrame(userdata).to_excel('DataBase/Sheets/UserData.xlsx') #Сохранение в постоянную память
+                    return {'status': 'UserAdded'} #Возврат статуса операции
+            elif acounttype == 'buisnes': #Если передаваемый тип аккаунта 'buisnes'
+                if login in userdataBuisnes['UserName']: #Проверка наличия пользователя в БД
+                    return {'status': 'UserInDataBase'} #Возврат статуса операции
+                else:
+                    userdataBuisnes = DBadd(userdataBuisnes,[
+                                            login,
+                                            password,
+                                            email,
+                                            0.0,
+                                            ]) #Добавление данных в БД
+                    pd.DataFrame(userdataBuisnes).to_excel('DataBase/Sheets/UserDataBuisnes.xlsx') #Сохранение в постоянную память
+                    return {'status': 'UserAdded'} #Возврат статуса операции
+        return {'Status' : "Доступ закрыт"}
 class logDataFrame(Resource): #Запрос на правильность введеных данных для логирования /<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
-    def get(self,login,password,acounttype): #Обработка GET запросов
-        if acounttype == 'gamer': #Если передаваемый тип аккаунта 'gemer'
-            if login in userdata['UserName'] and userdata['UserPass'][
-                userdata['UserName'].index(login)
-            ] == password: #Проверка правильности введеных данных для логирования
-                return {'status': 'OK'} #Возврат статуса операции
+    def get(self,Token,login,password,acounttype): #Обработка GET запросов
+        print(Token)
+        print(cfg.DataFrameAPI_Token)
+        if Token == cfg.DataFrameAPI_Token:
+            if acounttype == 'gamer': #Если передаваемый тип аккаунта 'gemer'
+                if login in userdata['UserName'] and userdata['UserPass'][
+                    userdata['UserName'].index(login)
+                ] == password: #Проверка правильности введеных данных для логирования
+                    return {'status': 'OK'} #Возврат статуса операции
+                else:
+                    return {'status': 'NotFound'} #Возврат статуса операции
+            elif acounttype == 'buisnes': #Если передаваемый тип аккаунта 'buisnes'
+                if login in userdataBuisnes['UserName'] and userdataBuisnes['UserPass'][
+                    userdataBuisnes['UserName'].index(login)
+                ] == password: #Проверка правильности введеных данных для логирования
+                    return {'status': 'OK'} #Возврат статуса операции
+                else:
+                    return {'status': 'NotFound'} #Возврат статуса операции
+        else:
+            return {'Status' : "Доступ закрыт"}
+class SearchDataFrame(Resource): #Запрос на правильность введеных данных для логирования /<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
+    def get(self,Token,login,acounttype):
+        if Token == cfg.DataFrameAPI_Token:
+            if acounttype == 'gamer':
+                ret = {}
+                index = userdata['UserName'].index(login)
+                for i in list(userdata):
+                    ret[i] = userdata[i][index]
+                return ret
+            elif acounttype == 'buises':
+                ret = {}
+                index = userdataBuisnes['UserName'].index(login)
+                for i in list(userdataBuisnes):
+                    ret[i] = userdataBuisnes[i][index]
+                return ret
+        else:
+            return {'Status' : "Доступ закрыт"}
+class GetToken(Resource): #Запрос на правильность введеных данных для логирования /<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
+    def get(self,Token,login,password):
+        if Token == cfg.DataFrameAPI_Token:
+            if login in userdataBuisnes['UserName'] \
+            and password == userdataBuisnes['UserPass'][userdataBuisnes['UserName'].index(login)]:
+                try:
+                    return {'Token': Tokens['Token'][Tokens['UserName'].index(login)]}
+                except:
+                    retToken = getToken()
+                    Tokens['UserName'].append(login)
+                    Tokens['Token'].append(retToken)
+                    pd.DataFrame(Tokens).to_excel('DataBase/Sheets/Tokens.xlsx')  # Сохранение в постоянную память
+                    return {'Token': retToken}
             else:
-                return {'status': 'NotFound'} #Возврат статуса операции
-        elif acounttype == 'buisnes': #Если передаваемый тип аккаунта 'buisnes'
-            if login in userdataBuisnes['UserName'] and userdataBuisnes['UserPass'][
-                userdataBuisnes['UserName'].index(login)
-            ] == password: #Проверка правильности введеных данных для логирования
-                return {'status': 'OK'} #Возврат статуса операции
+                return {'Status':"Eror"}
+        else:
+            return {'Status' : "Доступ закрыт"}
+class isTokenEnable(Resource): #Запрос на правильность введеных данных для логирования /<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
+    def get(self,Token,userToken):
+        if Token == cfg.DataFrameAPI_Token:
+            if userToken in Tokens['Token']:
+                return {'Token':True}
             else:
-                return {'status': 'NotFound'} #Возврат статуса операции
+                return {'Token': False}
+        else:
+            return {'Status' : "Доступ закрыт"}
 ##################################################################################
 
 #Привязка URL к кассу обработчику
 ##################################################################################
-api.add_resource(addDataFrame,"/<string:login>/<string:password>/<string:email>/<string:acounttype>")  #Запрос на добавление в базу данных
-api.add_resource(logDataFrame,"/<string:login>/<string:password>/<string:acounttype>") #Запрос на правильность введеных данных для логирования
+api.add_resource(addDataFrame,"/<string:Token>/<string:login>/<string:password>/<string:email>/<string:acounttype>")  #Запрос на добавление в базу данных
+
+api.add_resource(logDataFrame,"/<string:Token>/<string:login>/<string:password>/<string:acounttype>") #Запрос на правильность введеных данных для логирования
+
+api.add_resource(SearchDataFrame,"/search/<string:Token>/<string:login>/<string:acounttype>") #Запрос Данных пользователя
+
+api.add_resource(GetToken,"/gettoken/<string:Token>/<string:login>/<string:password>") #Запрос Данных пользователя
+api.add_resource(isTokenEnable,"/Token/<string:Token>/<string:userToken>") #Запрос Данных пользователя
 api.init_app(app)
 ##################################################################################
 
