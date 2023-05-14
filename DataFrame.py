@@ -42,7 +42,12 @@ def getToken():
 #Классы обработчики
 ##################################################################################
 class addDataFrame(Resource): #Запрос на добавление в базу данных /<Token>/<Логин>/<Пароль>/<Эл. почта>/<Тип аккаунта gamer || buisnes>
-    def put(self,Token,login,password,email,acounttype): #Обработка PUT запросов
+    def put(self): #Обработка PUT запросов
+        Token = request.args.get('Token')
+        login = request.args.get('login')
+        password = request.args.get('password')
+        email = request.args.get('email')
+        acounttype = request.args.get('acounttype')
         if Token == cfg.DataFrameAPI_Token:
             global userdata,userdataBuisnes #Обозначаем работу с глобальными переменными
             if acounttype == 'gamer': #Если передаваемый тип аккаунта 'gemer'
@@ -72,9 +77,11 @@ class addDataFrame(Resource): #Запрос на добавление в баз�
                     return {'status': 'UserAdded'} #Возврат статуса операции
         return {'Status' : "Доступ закрыт"}
 class logDataFrame(Resource): #Запрос на правильность введеных данных для логирования /<Token>/<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
-    def get(self,Token,login,password,acounttype): #Обработка GET запросов
-        print(Token)
-        print(cfg.DataFrameAPI_Token)
+    def get(self): #Обработка GET запросов
+        Token = request.args.get('Token')
+        login = request.args.get('login')
+        password = request.args.get('password')
+        acounttype = request.args.get('acounttype')
         if Token == cfg.DataFrameAPI_Token:
             if acounttype == 'gamer': #Если передаваемый тип аккаунта 'gemer'
                 if login in userdata['UserName'] and userdata['UserPass'][
@@ -93,7 +100,10 @@ class logDataFrame(Resource): #Запрос на правильность вве
         else:
             return {'Status' : "Доступ закрыт"}
 class SearchDataFrame(Resource): #Поисковой запрос по логину пользователя /search/<Token>/<Логин>/<Тип аккаунта gamer || buisnes>
-    def get(self,Token,login,acounttype):
+    def get(self):
+        Token = request.args.get('Token')
+        login = request.args.get('login')
+        acounttype = request.args.get('acounttype')
         if Token == cfg.DataFrameAPI_Token:
             if acounttype == 'gamer':
                 ret = {}
@@ -110,7 +120,10 @@ class SearchDataFrame(Resource): #Поисковой запрос по логи�
         else:
             return {'Status' : "Доступ закрыт"}
 class GetToken(Resource): #Запрос на Получение токена /gettoken/<Token>/<Логин>/<Пароль>
-    def get(self,Token,login,password):
+    def get(self):
+        Token = request.args.get('Token')
+        login = request.args.get('login')
+        password = request.args.get('password')
         if Token == cfg.DataFrameAPI_Token:
             if login in userdataBuisnes['UserName'] \
             and password == userdataBuisnes['UserPass'][userdataBuisnes['UserName'].index(login)]:
@@ -141,13 +154,13 @@ class isTokenEnable(Resource): #Запрос на наличие токена /T
 
 #Привязка URL к кассу обработчику
 ##################################################################################
-api.add_resource(addDataFrame,"/<string:Token>/<string:login>/<string:password>/<string:email>/<string:acounttype>")  #Запрос на добавление в базу данных
+api.add_resource(addDataFrame,"/reg")  #Запрос на добавление в базу данных
 
-api.add_resource(logDataFrame,"/<string:Token>/<string:login>/<string:password>/<string:acounttype>") #Запрос на правильность введеных данных для логирования
+api.add_resource(logDataFrame,"/log") #Запрос на правильность введеных данных для логирования
 
-api.add_resource(SearchDataFrame,"/search/<string:Token>/<string:login>/<string:acounttype>") #Запрос Данных пользователя
+api.add_resource(SearchDataFrame,"/search") #Запрос Данных пользователя
 
-api.add_resource(GetToken,"/gettoken/<string:Token>/<string:login>/<string:password>") #Запрос Данных пользователя
+api.add_resource(GetToken,"/gettoken") #Запрос Данных пользователя
 api.add_resource(isTokenEnable,"/Token") #Запрос Данных пользователя
 api.init_app(app)
 ##################################################################################

@@ -41,7 +41,10 @@ class pay(Resource): #Создание платежа /pay/<Token>/<Имя по�
                 return {"payurl": pay[1], "payid": pay[0]} #Создаем новый платеж и возвращаем его
 class checkpay(Resource): #Проверка платежей /chekpay/<Token>/<Имя пользователя>
     def get(self,Token,name): #обработка GET запросов
-        myToken = requests.get(cfg.databaseurl + "Token/" + cfg.DataFrameAPI_Token + "/" + Token).json()['Token']
+        myToken = requests.get(cfg.databaseurl + "Token",
+                               {'TokenDB': cfg.DataFrameAPI_Token,
+                                'Token': Token}
+                               ).json()['Token']
         if myToken:
             try:
                 return {
@@ -50,101 +53,119 @@ class checkpay(Resource): #Проверка платежей /chekpay/<Token>/<�
                         } #Возвращаем статус платежа и оплаченую сумму
             except:
                 return {'paystatus': "NotFound"} #Возвращаем ошибку "Платеж не найден"
-class registerFirst(Resource): #Регистрация /reg/<Token>/<Логин>/<Пароль>/<Эл. почта>/<Тип аккаунта gamer || buisnes>
-    def get(self,Token,login,password,email,acounttype): #обработка GET запросов
-        myToken = requests.get(cfg.databaseurl + "Token/" + cfg.DataFrameAPI_Token + "/" + Token).json()['Token']
-        if myToken and acounttype == 'gamer':
+class registerFirst(Resource): #Регистрация /reg
+    def get(self): #обработка GET запросов
+        global codes
+        Token = request.args.get('Token')
+        login = request.args.get('login')
+        password = request.args.get('password')
+        email = request.args.get('email')
+        acounttype = request.args.get('acounttype')
+        print(Token, login, password,email,  acounttype)
+        myToken = requests.get(cfg.databaseurl + "Token",
+                               {'TokenDB': cfg.DataFrameAPI_Token,
+                                'Token': Token}
+                               ).json()['Token']
+        if myToken or Token == cfg.DataFrameAPI_Token:
             if acounttype == 'gamer' or acounttype == 'buisnes': #Проверка правильности ввода типа аккаунта
                 codes[login] = [mail.CheckValidEmail(email),password,email,acounttype] #Проверка действительности Email
+                print(codes)
                 return {'status': 'Code sended'}
             else:
-                return {'status':'acounttype not corrected'} #Ошибка Типа аккаунта
-        elif Token == cfg.DataFrameAPI_Token and acounttype == 'buisnes':
-            if acounttype == 'gamer' or acounttype == 'buisnes': #Проверка правильности ввода типа аккаунта
-                codes[login] = [mail.CheckValidEmail(email),password,email,acounttype] #Проверка действительности Email
-                return {'status': 'Code sended'}
-            else:
-                return {'status':'acounttype not corrected'} #Ошибка Типа аккаунта
+                return {'status':'acounttype not corrected'} #Ошибка Типа аккаунт
         else:
             return {'status': 'acounttype not corrected or Token not searching'}  # Ошибка Типа аккаунта
-class registerSecond(Resource): #Регистрация 2 этап /reg/<Token>/<Логин>/<код верификации>
-    def get(self,Token,login,code):
-        myToken = requests.get(cfg.databaseurl + "Token/" + cfg.DataFrameAPI_Token + "/" + Token).json()['Token']
-        if codes[login][3] == 'gamer':
-            if myToken:
-                password = codes[login][1]
-                email = codes[login][2]
-                acounttype = codes[login][3]
-                if code == int(codes[login][0]) :
-                    return requests.put(
-                        cfg.databaseurl +cfg.DataFrameAPI_Token+"/"+ login + "/" + password + "/" + email + "/" + acounttype).json()  # Возврат ответа от БД
-                else:
-                    return {'status':'Code not corrected'}
-        elif codes[login][3] == 'buisnes':
+class registerSecond(Resource): #Регистрация 2 этап /reg/code
+    def get(self):
+        global codes
+        Token = request.args.get('Token')
+        login = request.args.get('login')
+        code = request.args.get('code')
+        myToken = requests.get(cfg.databaseurl + "Token",
+                               {'TokenDB': cfg.DataFrameAPI_Token,
+                                'Token': Token}
+                               ).json()['Token']
+        if myToken or Token == cfg.DataFrameAPI_Token:
+            print(codes)
             password = codes[login][1]
             email = codes[login][2]
             acounttype = codes[login][3]
             if code == int(codes[login][0]):
                 return requests.put(
-                    cfg.databaseurl + cfg.DataFrameAPI_Token + "/" + login + "/" + password + "/" + email + "/" + acounttype).json()  # Возврат ответа от БД
+                    cfg.databaseurl+"reg",
+                    {'Token':cfg.DataFrameAPI_Token,
+                     'login':login,
+                     'password':password,
+                     'email':email,
+                     'acounttype':acounttype}
+                ).json()  # Возврат ответа от БД
+            else:
+                return {'status':'Code not corrected'}
+class loginFirst(Resource): #Логирование в системе /log/<Token>/<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
+    def get(self): #обработка GET запросов
+        Token = request.args.get('Token')
+        login = request.args.get('login')
+        password = request.args.get('password')
+        acounttype = request.args.get('acounttype')
+        myToken = requests.get(cfg.databaseurl + "Token",
+                               {'TokenDB': cfg.DataFrameAPI_Token,
+                                'Token': Token}
+                               ).json()['Token']
+        if myToken and Token == cfg.DataFrameAPI_Token:
+            if acounttype == 'gamer' or acounttype == 'buisnes': #Проверка правильности ввода типа аккаунта
+                email = requests.get(cfg.databaseurl+"search",
+                                     {'Token':cfg.DataFrameAPI_Token,
+                                      'login':login,
+                                      'acounttype':acounttype}
+                                     ).json()['email']
+                codes[login] = [mail.CheckValidEmail(email), password, acounttype]
+                return {'status': 'Code sended'}
+            else:
+                return {'status':'acounttype not corrected'} #Ошибка Типа аккаунта
+class loginSecond(Resource): #Логирование в системе 2 этап /log/code
+    def get(self):
+        Token = request.args.get('Token')
+        login = request.args.get('login')
+        code = request.args.get('code')
+        myToken = requests.get(cfg.databaseurl + "Token",
+                               {'TokenDB': cfg.DataFrameAPI_Token,
+                                'Token': Token}
+                               ).json()['Token']
+        if myToken or Token == cfg.DataFrameAPI_Token:
+            password = codes[login][1]
+            acounttype = codes[login][2]
+            if code == int(codes[login][0]):
+                return requests.get(cfg.databaseurl+'log',
+                                    {'Token':cfg.DataFrameAPI_Token,
+                                     'login':login,
+                                     'password':password,
+                                     'acounttype':acounttype}
+                                    ).json() #Возврат ответа от БД
             else:
                 return {'status': 'Code not corrected'}
-class loginFirst(Resource): #Логирование в системе /log/<Token>/<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
-    def get(self,Token,login,password,acounttype): #обработка GET запросов
-        myToken = requests.get(cfg.databaseurl + "Token/" + cfg.DataFrameAPI_Token + "/" + Token).json()['Token']
-        if myToken and acounttype == 'gamer':
-            if acounttype == 'gamer' or acounttype == 'buisnes': #Проверка правильности ввода типа аккаунта
-                email = requests.get(cfg.databaseurl+"search/"+cfg.DataFrameAPI_Token+"/"+login+"/"+acounttype).json()['email']
-                codes[login] = [CheckValidEmail(email), password, acounttype]
-                return {'status': 'Code sended'}
-            else:
-                return {'status':'acounttype not corrected'} #Ошибка Типа аккаунта
-        elif Token == cfg.DataFrameAPI_Token and acounttype == 'buisnes':
-            if acounttype == 'gamer' or acounttype == 'buisnes': #Проверка правильности ввода типа аккаунта
-                email = requests.get(cfg.databaseurl+"search/"+cfg.DataFrameAPI_Token+"/"+login+"/"+acounttype).json()['email']
-                codes[login] = [CheckValidEmail(email), password, acounttype]
-                return {'status': 'Code sended'}
-            else:
-                return {'status':'acounttype not corrected'} #Ошибка Типа аккаунта
-        else:
-            return {'status': 'acounttype not corrected or Token not searching'}  # Ошибка Типа аккаунта
-class loginSecond(Resource): #Логирование в системе 2 этап /log/<Token>/<Логин>/<код верификации>
-    def get(self,Token,login,code):
-        myToken = requests.get(cfg.databaseurl + "Token/" + cfg.DataFrameAPI_Token + "/" + Token).json()['Token']
-        if codes[login][2] == 'gamer':
-            if myToken:
-                password = codes[login][1]
-                acounttype = codes[login][2]
-                if code == int(codes[login][0]):
-                    return requests.get(cfg.databaseurl+cfg.DataFrameAPI_Token+"/"+login+"/"+password+"/"+acounttype).json() #Возврат ответа от БД
-                else:
-                    return {'status': 'Code not corrected'}
-        elif codes[login][2] == 'buisnes':
-            if Token == cfg.DataFrameAPI_Token:
-                password = codes[login][1]
-                acounttype = codes[login][2]
-                if code == int(codes[login][0]):
-                    return requests.get(
-                        cfg.databaseurl + cfg.DataFrameAPI_Token + "/" + login + "/" + password + "/" + acounttype).json()  # Возврат ответа от БД
-                else:
-                    return {'status': 'Code not corrected'}
 class GetToken(Resource): #Запрос API токена /gettoken/<Логин>/<Пароль>
-    def get(self,login,password):
-        return requests.get(cfg.databaseurl+"gettoken/"+cfg.DataFrameAPI_Token+"/"+login+"/"+password).json()
+    def get(self):
+        password = request.args.get('password')
+        login = request.args.get('login')
+        return requests.get(cfg.databaseurl+"gettoken",
+                            {'Token':cfg.DataFrameAPI_Token,
+                             'login':login,
+                             'password':password}
+                            ).json()
 ##################################################################################
 
 #Привязка URL к кассу обработчику
 ##################################################################################
 api.add_resource(pay,"/pay") #Создание ссылки на оплату
-api.add_resource(checkpay,"/chekpay/<string:Token>/<string:name>") #проверка оплаты
+api.add_resource(checkpay,"/chekpay>") #проверка оплаты
 
-api.add_resource(registerFirst,"/reg/<string:Token>/<string:login>/<string:password>/<string:email>/<string:acounttype>") #Регистрация пользователя 1 этап
-api.add_resource(registerSecond,"/reg/<string:Token>/<string:login>/<int:code>") #Регистрация пользователя  2 этап
+api.add_resource(registerFirst,"/reg") #Регистрация пользователя 1 этап
+api.add_resource(registerSecond,"/reg/code") #Регистрация пользователя  2 этап
 
-api.add_resource(loginFirst,"/log/<string:Token>/<string:login>/<string:password>/<string:acounttype>") #Логирования пользователя в системе 1 этап
-api.add_resource(loginSecond,"/log/<string:Token>/<string:login>/<int:code>") #Логирования пользователя в систем 2 этап
+api.add_resource(loginFirst,"/log") #Логирования пользователя в системе 1 этап
+api.add_resource(loginSecond,"/log/code") #Логирования пользователя в систем 2 этап
 
-api.add_resource(GetToken,"/gettoken/<string:login>/<string:password>") #Логирования пользователя в систем
+api.add_resource(GetToken,"/gettoken") #Логирования пользователя в систем
 api.init_app(app)
 ##################################################################################
 if __name__ == "__main__":

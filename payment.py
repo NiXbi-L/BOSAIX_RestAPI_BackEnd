@@ -5,13 +5,13 @@ import cfg
 Configuration.account_id = cfg.ShopID
 Configuration.secret_key = cfg.PaymentAPI_key
 class payment():
-    def check_pay(self,payment_id):
+    def check_pay(payment_id):
         payment = json.loads((Payment.find_one(payment_id)).json()) #Делаем запрос о статусе платежа
         if payment['status'] == 'pending':
             return False
         elif payment['status'] =='succeeded':
             return True
-    def create_pay_url(self,sum,description,email):
+    def create_pay_url(sum,description,email):
         idempotence_key = str(uuid.uuid4())
         payment = Payment.create({
             "amount": {
