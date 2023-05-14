@@ -42,13 +42,13 @@ def getToken():
 #Классы обработчики
 ##################################################################################
 class addDataFrame(Resource): #Запрос на добавление в базу данных /<Token>/<Логин>/<Пароль>/<Эл. почта>/<Тип аккаунта gamer || buisnes>
-    def put(self): #Обработка PUT запросов
+    def get(self): #Обработка GET запросов
         Token = request.args.get('Token')
         login = request.args.get('login')
         password = request.args.get('password')
         email = request.args.get('email')
         acounttype = request.args.get('acounttype')
-        if Token == cfg.DataFrameAPI_Token:
+        if str(Token) == str(cfg.DataFrameAPI_Token):
             global userdata,userdataBuisnes #Обозначаем работу с глобальными переменными
             if acounttype == 'gamer': #Если передаваемый тип аккаунта 'gemer'
                 if login in userdata['UserName']: #Проверка наличия пользователя в БД
@@ -75,7 +75,8 @@ class addDataFrame(Resource): #Запрос на добавление в баз�
                                             ]) #Добавление данных в БД
                     pd.DataFrame(userdataBuisnes).to_excel('DataBase/Sheets/UserDataBuisnes.xlsx') #Сохранение в постоянную память
                     return {'status': 'UserAdded'} #Возврат статуса операции
-        return {'Status' : "Доступ закрыт"}
+        else:
+            return {'Status' : "Доступ закрыт"}
 class logDataFrame(Resource): #Запрос на правильность введеных данных для логирования /<Token>/<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
     def get(self): #Обработка GET запросов
         Token = request.args.get('Token')

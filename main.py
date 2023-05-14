@@ -21,6 +21,7 @@ class pay(Resource): #Создание платежа /pay/<Token>/<Имя по�
     def get(self): #обработка GET запросов
         name = request.args.get('name')
         Token = request.args.get('Token')
+        sum = request.args.get('sum')
         myToken = requests.get(cfg.databaseurl+"Token",
                                {'TokenDB':cfg.DataFrameAPI_Token,
                                 'Token':Token}
@@ -81,17 +82,17 @@ class registerSecond(Resource): #Регистрация 2 этап /reg/code
         Token = request.args.get('Token')
         login = request.args.get('login')
         code = request.args.get('code')
+        print(code)
         myToken = requests.get(cfg.databaseurl + "Token",
                                {'TokenDB': cfg.DataFrameAPI_Token,
                                 'Token': Token}
                                ).json()['Token']
         if myToken or Token == cfg.DataFrameAPI_Token:
-            print(codes)
             password = codes[login][1]
             email = codes[login][2]
             acounttype = codes[login][3]
-            if code == int(codes[login][0]):
-                return requests.put(
+            if int(code) == int(codes[login][0]):
+                return requests.get(
                     cfg.databaseurl+"reg",
                     {'Token':cfg.DataFrameAPI_Token,
                      'login':login,
