@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_restful import Api, Resource
 import requests
 
@@ -41,7 +41,7 @@ def getToken():
 
 #Классы обработчики
 ##################################################################################
-class addDataFrame(Resource): #Запрос на добавление в базу данных /<Логин>/<Пароль>/<Эл. почта>/<Тип аккаунта gamer || buisnes>
+class addDataFrame(Resource): #Запрос на добавление в базу данных /<Token>/<Логин>/<Пароль>/<Эл. почта>/<Тип аккаунта gamer || buisnes>
     def put(self,Token,login,password,email,acounttype): #Обработка PUT запросов
         if Token == cfg.DataFrameAPI_Token:
             global userdata,userdataBuisnes #Обозначаем работу с глобальными переменными
@@ -71,7 +71,7 @@ class addDataFrame(Resource): #Запрос на добавление в баз�
                     pd.DataFrame(userdataBuisnes).to_excel('DataBase/Sheets/UserDataBuisnes.xlsx') #Сохранение в постоянную память
                     return {'status': 'UserAdded'} #Возврат статуса операции
         return {'Status' : "Доступ закрыт"}
-class logDataFrame(Resource): #Запрос на правильность введеных данных для логирования /<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
+class logDataFrame(Resource): #Запрос на правильность введеных данных для логирования /<Token>/<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
     def get(self,Token,login,password,acounttype): #Обработка GET запросов
         print(Token)
         print(cfg.DataFrameAPI_Token)
@@ -92,7 +92,7 @@ class logDataFrame(Resource): #Запрос на правильность вве
                     return {'status': 'NotFound'} #Возврат статуса операции
         else:
             return {'Status' : "Доступ закрыт"}
-class SearchDataFrame(Resource): #Запрос на правильность введеных данных для логирования /<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
+class SearchDataFrame(Resource): #Поисковой запрос по логину пользователя /search/<Token>/<Логин>/<Тип аккаунта gamer || buisnes>
     def get(self,Token,login,acounttype):
         if Token == cfg.DataFrameAPI_Token:
             if acounttype == 'gamer':
@@ -109,7 +109,7 @@ class SearchDataFrame(Resource): #Запрос на правильность в�
                 return ret
         else:
             return {'Status' : "Доступ закрыт"}
-class GetToken(Resource): #Запрос на правильность введеных данных для логирования /<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
+class GetToken(Resource): #Запрос на Получение токена /gettoken/<Token>/<Логин>/<Пароль>
     def get(self,Token,login,password):
         if Token == cfg.DataFrameAPI_Token:
             if login in userdataBuisnes['UserName'] \
@@ -126,8 +126,10 @@ class GetToken(Resource): #Запрос на правильность введе
                 return {'Status':"Eror"}
         else:
             return {'Status' : "Доступ закрыт"}
-class isTokenEnable(Resource): #Запрос на правильность введеных данных для логирования /<Логин>/<Пароль>/<Тип аккаунта gamer || buisnes>
-    def get(self,Token,userToken):
+class isTokenEnable(Resource): #Запрос на наличие токена /Token/<Token>/<userToken>
+    def get(self):
+        Token = request.args.get('TokenDB')
+        userToken = request.args.get('Token')
         if Token == cfg.DataFrameAPI_Token:
             if userToken in Tokens['Token']:
                 return {'Token':True}
@@ -146,7 +148,7 @@ api.add_resource(logDataFrame,"/<string:Token>/<string:login>/<string:password>/
 api.add_resource(SearchDataFrame,"/search/<string:Token>/<string:login>/<string:acounttype>") #Запрос Данных пользователя
 
 api.add_resource(GetToken,"/gettoken/<string:Token>/<string:login>/<string:password>") #Запрос Данных пользователя
-api.add_resource(isTokenEnable,"/Token/<string:Token>/<string:userToken>") #Запрос Данных пользователя
+api.add_resource(isTokenEnable,"/Token") #Запрос Данных пользователя
 api.init_app(app)
 ##################################################################################
 
