@@ -1,9 +1,12 @@
 from flask import Flask, request
 from flask_restful import Api, Resource
+
 import requests
 
 from payment import payment
+
 import cfg
+
 from SendMail import mail
 
 #Создание объектов RestFull_API
